@@ -27,7 +27,7 @@ namespace WindowsGSM.Plugins
             name = "WindowsGSM.ArkSAwithServerAPI", // WindowsGSM.XXXX
             author = "ohmcodes™",
             description = "WindowsGSM plugin for supporting ARK:SA™ Dedicated Server with ServerAPI from GameServerHub",
-            version = "2.0.0",
+            version = "2.1.0",
             url = "https://github.com/ohmcodes/WindowsGSM.ArkSAwithServerAPI", // Github repository link (Best practice)
             color = "#008B8B" // Color Hex
         };
