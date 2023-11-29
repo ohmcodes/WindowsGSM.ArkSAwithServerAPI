@@ -27,7 +27,7 @@ namespace WindowsGSM.Plugins
             name = "WindowsGSM.ArkSAwithServerAPI", // WindowsGSM.XXXX
             author = "ohmcodes™",
             description = "WindowsGSM plugin for supporting ARK:SA™ Dedicated Server with ServerAPI from GameServerHub",
-            version = "2.1.0",
+            version = "2.8.0",
             url = "https://github.com/ohmcodes/WindowsGSM.ArkSAwithServerAPI", // Github repository link (Best practice)
             color = "#008B8B" // Color Hex
         };
@@ -79,7 +79,6 @@ namespace WindowsGSM.Plugins
             DownloadServerAPI();
             InstallServerAPI();
         }
-
         // - Start server function, return its Process to WindowsGSM
         public async Task<Process> Start()
         {
@@ -166,7 +165,6 @@ namespace WindowsGSM.Plugins
                 return null; // return null if fail to start
             }
         }
-
         // - Stop server function
         public async Task Stop(Process p)
         {
@@ -178,7 +176,6 @@ namespace WindowsGSM.Plugins
                 ServerConsole.SendWaitToMainWindow("^c");
             });
         }
-
         public async Task<Process> Install()
         {
             var steamCMD = new Installer.SteamCMD();
@@ -186,45 +183,39 @@ namespace WindowsGSM.Plugins
             Error = steamCMD.Error;
             return p;
         }
-
         public async Task<Process> Update(bool validate = false, string custom = null)
         {
             var (p, error) = await Installer.SteamCMD.UpdateEx(_serverData.ServerID, AppId, validate, custom: custom, loginAnonymous: loginAnonymous);
             Error = error;
 
-            DownloadServerAPI();
-            await Task.Delay(5000);
-            CleanServerAPI();
-            await Task.Delay(5000);
-            InstallServerAPI();
-
+            if (error == null)
+            {
+                DownloadServerAPI();
+                await Task.Delay(5000);
+                CleanServerAPI();
+            }
             return p;
         }
-
         public bool IsInstallValid()
         {
             return File.Exists(ServerPath.GetServersServerFiles(_serverData.ServerID, StartPath));
         }
-
         public bool IsImportValid(string path)
         {
             string importPath = Path.Combine(path, StartPath);
             Error = $"Invalid Path! Fail to find {Path.GetFileName(StartPath)}";
             return File.Exists(importPath);
         }
-
         public string GetLocalBuild()
         {
             var steamCMD = new Installer.SteamCMD();
             return steamCMD.GetLocalBuild(_serverData.ServerID, AppId);
         }
-
         public async Task<string> GetRemoteBuild()
         {
             var steamCMD = new Installer.SteamCMD();
             return await steamCMD.GetRemoteBuild(AppId);
         }
-
         private bool IsRedistributableInstalled(Version requiredVersion)
         {
             using (RegistryKey key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64"))
@@ -252,7 +243,6 @@ namespace WindowsGSM.Plugins
 
             return false;
         }
-
         private async void DownloadVCPackage()
         {
             if (File.Exists(reqFileName))
@@ -274,7 +264,6 @@ namespace WindowsGSM.Plugins
                 Error = $"Error downloading installer: {ex.Message}";
             }
         }
-
         private void InstallVCPackage()
         {
             if (File.Exists(reqFileName))
@@ -295,14 +284,13 @@ namespace WindowsGSM.Plugins
                 Error = "Installer not found. Please download it first.";
             }
         }
-
         private async void DownloadServerAPI()
         {
             string userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3";
 
             if (File.Exists(serverAPIFileName))
             {
-                File.Delete(serverAPIFileName);
+                //File.Delete(serverAPIFileName);
             }
 
             WebClient webClient = new WebClient();
@@ -328,74 +316,73 @@ namespace WindowsGSM.Plugins
 
             return;
         }
-        public void GetFilesToDelete(string directoryPath)
-        {
-            filesToDelete = new List<string>();
-            List<string> filesToExclude = new List<string>()
-            {
-                "config.json"
-            };
-
-            // Get all files in the specified directory and its subdirectories
-            foreach (string filePath in Directory.GetFiles(directoryPath, "*", SearchOption.AllDirectories))
-            {
-                string directPath = filePath.Split(new[] { "tmp\\" }, StringSplitOptions.RemoveEmptyEntries)[1];
-                string getFile = filePath.Split(new[] { "\\" }, StringSplitOptions.RemoveEmptyEntries).Last();
-                // exclude files from filesToExclude
-                if (filesToExclude.Contains(getFile)) continue;
-
-                filesToDelete.Add(directPath);
-            }
-        }
         public async void CleanServerAPI()
         {
+            Console.WriteLine($"CleanServerAPI() CALLED");
             string apiFilePath = ServerPath.GetServersServerFiles(_serverData.ServerID, serverAPIFileName);
             string tmpDestination = ServerPath.GetServersServerFiles(_serverData.ServerID, @"tmp\");
             string directoryPath = ServerPath.GetServersServerFiles(_serverData.ServerID, @"ShooterGame\Binaries\Win64\");
 
-            // Extract to get File List
-            if (!await FileManagement.ExtractZip(apiFilePath, Directory.GetParent(tmpDestination).FullName))
+            if(Directory.Exists(tmpDestination))
             {
-                Error = $"Fail to extract {serverAPIFileName}";
-            }
-
-            // Get List of ServerAPI files
-            GetFilesToDelete(Directory.GetParent(tmpDestination).FullName);
-
-            // Delete each file in the array
-            foreach (string fileName in filesToDelete)
-            {
-                string filePath = Path.Combine(directoryPath, fileName);
-
+                // Delete existing folder
                 try
                 {
-                    if (File.Exists(filePath))
-                    {
-                        File.Delete(filePath);
-                        Notice = $"File '{fileName}' deleted successfully.";
-                    }
-                    else if (Directory.Exists(filePath))
-                    {
-                        // Delete the directory and its contents recursively
-                        Directory.Delete(filePath, true);
-                        Notice = $"Directory '{filePath}' deleted successfully.";
-                    }
-                    else
-                    {
-                        Notice = $"File '{fileName}' does not exist.";
-                    }
+                    Directory.Delete(tmpDestination, true);
                 }
                 catch (Exception ex)
                 {
-                    Error = $"Error deleting file '{fileName}': {ex.Message}";
+                    Console.WriteLine($"Fail to delete {tmpDestination}");
+                    return;
                 }
             }
 
-            // Delete tmp
-            Directory.Delete(tmpDestination, true);
+            // Extract to get File List
+            if (!await FileManagement.ExtractZip(apiFilePath, Directory.GetParent(tmpDestination).FullName))
+            {
+                Console.WriteLine($"Fail to extract {serverAPIFileName}");
+                return;
+            }
+            else
+            {
+                // Get List of ServerAPI files
+                GetFilesToDelete(Directory.GetParent(tmpDestination).FullName);
+            }
+            Console.WriteLine($"RUNNING FOR EACH NOW");
+
+            await Task.Run(() =>
+            {
+                foreach (string fileName in filesToDelete)
+                {
+                    string filePath = Path.Combine(directoryPath, fileName);
+                    Console.WriteLine($"LISTING ITERATION: {fileName}");
+                    try
+                    {
+                        if (File.Exists(filePath))
+                        {
+                            BackupConfigFiles(fileName);
+                        }
+                        else
+                        {
+                            Console.WriteLine($"File '{fileName}' does not exist.");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error deleting file '{fileName}': {ex.Message}");
+                    }
+                }
+
+                filesToDelete.Clear();
+                // Delete tmp
+                Directory.Delete(tmpDestination, true);
+
+                InstallServerAPI();
+            });
         }
         public async void InstallServerAPI()
         {
+            Console.WriteLine("InstallServerAPI() CALLED");
             try
             {
                 string apiFilePath = ServerPath.GetServersServerFiles(_serverData.ServerID, serverAPIFileName);
@@ -404,24 +391,153 @@ namespace WindowsGSM.Plugins
                 // Install
                 if (!await FileManagement.ExtractZip(apiFilePath, Directory.GetParent(apiDestination).FullName))
                 {
-                    Error = $"Fail to extract {serverAPIFileName}";
+                    Console.WriteLine($"Fail to extract {serverAPIFileName}");
+                }
+                else
+                {
+                    Console.WriteLine("Extraction completed successfully.");
+                    // Restore Config
+                    RestoreConfigFiles();
                 }
 
                 // Delete zip file
                 await FileManagement.DeleteAsync(apiFilePath);
-
-                Notice = "Extraction completed successfully.";
             }
             catch (Exception ex)
             {
-                Error = $"Error extracting package: {ex.Message}";
+                Console.WriteLine($"Error extracting package: {ex.Message}");
             }
+        }
+        public void GetFilesToDelete(string directoryPath)
+        {
+            Console.WriteLine($"GetFilesToDelete() CALLED");
+            filesToDelete = new List<string>();
+            string tmpConfigFile = ServerPath.GetServersServerFiles(_serverData.ServerID, @"tmp2");
+            // Get all files in the specified directory and its subdirectories
+            foreach (string filePath in Directory.GetFiles(directoryPath, "*", SearchOption.AllDirectories))
+            {
+                string directPath = filePath.Split(new[] { "tmp\\" }, StringSplitOptions.RemoveEmptyEntries)[1];
+
+                // exclude files from filesToExclude
+                //if (directPath.Contains(@"ArkApi\Plugins"))continue;
+                Console.WriteLine($" ADDED TO DELETE PATHS {Path.Combine(directoryPath,directPath)}");
+                filesToDelete.Add(directPath);
+            }
+        }
+        private async void BackupConfigFiles(string fileName)
+        {
+            Console.WriteLine("BackupConfigFiles() CALLED");
+            string tmpConfigFile = ServerPath.GetServersServerFiles(_serverData.ServerID, @"tmp2");
+            string directoryPath = ServerPath.GetServersServerFiles(_serverData.ServerID, @"ShooterGame\Binaries\Win64\");
+            string filePath = Path.Combine(directoryPath, fileName);
+            string copySource = Path.Combine(directoryPath, fileName);
+            string copyDestination = Path.Combine(tmpConfigFile, fileName);
+
+            await Task.Run(async () =>
+            {
+                try
+                {
+                    if (filePath.Contains("config.json"))
+                    {
+                        // Create tmp2 folder for config files
+                        if (!Directory.Exists(tmpConfigFile))
+                            Directory.CreateDirectory(tmpConfigFile);
+
+                        // Create the nested directories in the destination path
+                        Directory.CreateDirectory(Path.GetDirectoryName(Path.Combine(tmpConfigFile, fileName)));
+
+                        // Copy the file to the destination path
+                        File.Copy(copySource, copyDestination, true);
+                        Console.WriteLine($"BACKUP SUCCESS! {copySource}");
+                    }
+
+                    if (File.Exists(filePath))
+                    {
+                        Console.WriteLine($"DELETING FILE '{filePath}'");
+                        //File.Delete(filePath);
+                        await FileManagement.DeleteAsync(filePath);
+                    }
+
+                    Console.WriteLine($"File '{fileName}' deleted successfully.");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"BackupConfigFiles() Error {ex.Message}");
+                }
+            });
+
+            await Task.Delay(1000);
+        }
+        private async void RestoreConfigFiles()
+        {
+            Console.WriteLine($"RestoreConfigFiles() CALLED");
+            string tmpConfigFile = ServerPath.GetServersServerFiles(_serverData.ServerID, @"tmp2");
+            string directoryPath = ServerPath.GetServersServerFiles(_serverData.ServerID, @"ShooterGame\Binaries\Win64\");
+
+            if (!Directory.Exists(tmpConfigFile))
+                return;
+
+            await Task.Run(async () =>
+            {
+                try
+                {
+                    // Copy each file from the source to the destination
+                    if(await CopyFiles(tmpConfigFile, directoryPath))
+                    {
+                        Console.WriteLine($"Attempting to delete tmp2");
+                        // Delete tmp2 (Config files)
+                        Directory.Delete(tmpConfigFile, true);
+                        Console.WriteLine($"Deleted");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"RestoreConfigFiles() Error {ex.Message}");
+                }
+            });
+        }
+        private async Task<bool> CopyFiles(string sourceDirectory, string destinationDirectory)
+        {
+            Console.WriteLine("CopyFiles() CALLED");
+            // Get all files in the source directory and its subdirectories
+            string[] filesToCopy = Directory.GetFiles(sourceDirectory, "*", SearchOption.AllDirectories);
+
+            return await Task.Run( () => {
+                foreach (string sourceFilePath in filesToCopy)
+                {
+                    // Construct the destination path by replacing the source directory with the destination directory
+                    string relativePath = sourceFilePath.Substring(sourceDirectory.Length + 1);
+                    string destinationFilePath = Path.Combine(destinationDirectory, relativePath);
+
+                    if (!File.Exists(destinationFilePath))
+                    {
+                        Console.WriteLine($"Not Exist: !!!!!!!!!!! {destinationFilePath}");
+                        return false;
+                    }
+
+                    try
+                    {
+                        // Ensure the directory structure exists in the destination path
+                        Directory.CreateDirectory(Path.GetDirectoryName(destinationFilePath));
+
+                        // Copy the file to the destination path, overwriting if it already exists
+                        File.Copy(sourceFilePath, destinationFilePath, overwrite: true);
+                        
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"CopyFiles() Error : {ex.Message}");
+                        return false;
+                    }
+                }
+                Console.WriteLine($"Done CopyFiles() LOOP");
+                return true;
+            });
         }
         private void WebClient_DownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
         {
             Notice += $"Download Progress: {e.ProgressPercentage}";
         }
-
         private void WebClient_DownloadFileCompletedVCPackage(object sender, AsyncCompletedEventArgs e)
         {
             if (e.Error != null)
@@ -434,7 +550,6 @@ namespace WindowsGSM.Plugins
                 InstallVCPackage();
             }
         }
-
         private void WebClient_DownloadFileCompletedServerAPI(object sender, AsyncCompletedEventArgs e)
         {
             if (e.Error != null)
