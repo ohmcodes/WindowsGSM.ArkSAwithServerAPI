@@ -331,11 +331,20 @@ namespace WindowsGSM.Plugins
         public void GetFilesToDelete(string directoryPath)
         {
             filesToDelete = new List<string>();
+            List<string> filesToExclude = new List<string>()
+            {
+                "config.json"
+            };
 
             // Get all files in the specified directory and its subdirectories
             foreach (string filePath in Directory.GetFiles(directoryPath, "*", SearchOption.AllDirectories))
             {
-                filesToDelete.Add(filePath.Split(new[] { "tmp\\" }, StringSplitOptions.RemoveEmptyEntries)[1]);
+                string directPath = filePath.Split(new[] { "tmp\\" }, StringSplitOptions.RemoveEmptyEntries)[1];
+                string getFile = filePath.Split(new[] { "\\" }, StringSplitOptions.RemoveEmptyEntries).Last();
+                // exclude files from filesToExclude
+                if (filesToExclude.Contains(getFile)) continue;
+
+                filesToDelete.Add(directPath);
             }
         }
         public async void CleanServerAPI()
