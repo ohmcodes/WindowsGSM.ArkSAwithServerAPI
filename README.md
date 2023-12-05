@@ -35,5 +35,8 @@
 - Can Stop/Start/Restart/Validate
 - Auto Download and Install required VC Package
 
+# Note
+- Dont Use Auto Update on Start
+
 # License
 This project is licensed under the MIT License - see the <a href="https://github.com/ohmcodes/WindowsGSM.ArkSAwithServerAPI/blob/main/LICENSE">LICENSE.md</a> file for details
