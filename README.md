@@ -12,7 +12,7 @@
 2. Extract then Move **ArkSAwithServerAPI.cs** folder to **plugins** folder
 3. OR Press on the Puzzle Icon in the left bottom side and install this plugin by navigating to it and select the Zip File.
 4. Click **[RELOAD PLUGINS]** button or restart WindowsGSM
-5. Navigate "Servers" and Click "Install Game Server" and find "American Truck Simulator Dedicated Server [ArkSAwithServerAPI.cs]
+5. Navigate "Servers" and Click "Install Game Server" and find "Ark Surival Ascended Dedicated Server [ArkSAwithServerAPI.cs]
 
 ### Official Documentation (old but still the same)
 🗃️ https://ark.fandom.com/wiki/Dedicated_server_setup
