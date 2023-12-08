@@ -27,7 +27,7 @@ namespace WindowsGSM.Plugins
             name = "WindowsGSM.ArkSAwithServerAPI", // WindowsGSM.XXXX
             author = "ohmcodes™",
             description = "WindowsGSM plugin for supporting ARK:SA™ Dedicated Server with ServerAPI from GameServerHub",
-            version = "2.8.0",
+            version = "2.8.1",
             url = "https://github.com/ohmcodes/WindowsGSM.ArkSAwithServerAPI", // Github repository link (Best practice)
             color = "#008B8B" // Color Hex
         };
@@ -97,7 +97,7 @@ namespace WindowsGSM.Plugins
 
             param.Append("?listen");
 
-            param.Append(!string.IsNullOrWhiteSpace(_serverData.ServerName)? $"?SessionName=\"{_serverData.ServerName}\"" : "SessionName=\"wgsm_arksa_serverapi_dedicated\"");
+            param.Append(!string.IsNullOrWhiteSpace(_serverData.ServerName)? $"?SessionName=\"\"\"{_serverData.ServerName}\"\"\"" : "SessionName=\"wgsm_arksa_serverapi_dedicated\"");
 
             param.Append(!string.IsNullOrWhiteSpace(_serverData.ServerIP)? $"?MultiHome={_serverData.ServerIP}" : _serverData.GetIPAddress());
 
