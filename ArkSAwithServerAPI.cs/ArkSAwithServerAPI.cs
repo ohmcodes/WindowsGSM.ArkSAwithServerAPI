@@ -27,7 +27,7 @@ namespace WindowsGSM.Plugins
             name = "WindowsGSM.ArkSAwithServerAPI", // WindowsGSM.XXXX
             author = "ohmcodes™",
             description = "WindowsGSM plugin for supporting ARK:SA™ Dedicated Server with ServerAPI from GameServerHub",
-            version = "2.8.1",
+            version = "2.9.2",
             url = "https://github.com/ohmcodes/WindowsGSM.ArkSAwithServerAPI", // Github repository link (Best practice)
             color = "#008B8B" // Color Hex
         };
@@ -41,9 +41,7 @@ namespace WindowsGSM.Plugins
         private readonly string reqFileName = "VC_redist.x64.exe";
         public readonly string registryPath = @"SOFTWARE\Microsoft\VisualStudio\14.0_Config\VC\Runtimes\X64";
         private readonly Version requiredVersion = new Version("14.38.33.130");
-
-        private readonly string serverAPIDownloadLink = "https://github.com/ServersHub/ServerAPI/releases/download/1.0/AsaApi.v0.1.zip";
-        private readonly string serverAPIFileName = "AsaApi.v0.1.zip";
+        private string serverAPIFileName = "AsaApi.v0.1.zip";
 
         private List<string> filesToDelete;
 
@@ -68,16 +66,19 @@ namespace WindowsGSM.Plugins
         public string Additional = "?RCONEnabled=True?RCONPort=31001?ServerAutoForceRespawnWildDinosInterval=86400?AllowCrateSpawnsOnTopOfStructures=True -UseBattlEye -server -crossplay -nosteamclient -servergamelog -log -lowmem -nosound -ServerRCONOutputTribeLogs -culture=en -servergamelogincludetribelogs -forcerespawndinos"; // Additional server start parameter
 
         // - Create a default cfg for the game server after installation
-        public void CreateServerCFG()
+        public async void CreateServerCFG()
         {
-            if (!IsRedistributableInstalled(requiredVersion))
+			if (File.Exists(ServerPath.GetServersServerFiles(_serverData.ServerID, StartPath)))
             {
-                Notice = "Downloading VC_Distribution";
-                DownloadVCPackage();
+				if (!IsRedistributableInstalled(requiredVersion))
+				{
+					Notice = "Downloading VC_Distribution";
+					DownloadVCPackage();
+				}
+                DownloadServerAPI();
+				await Task.Delay(5000);
+                CleanServerAPI();
             }
-
-            DownloadServerAPI();
-            InstallServerAPI();
         }
         // - Start server function, return its Process to WindowsGSM
         public async Task<Process> Start()
@@ -181,6 +182,8 @@ namespace WindowsGSM.Plugins
             var steamCMD = new Installer.SteamCMD();
             Process p = await steamCMD.Install(_serverData.ServerID, string.Empty, AppId, true, loginAnonymous);
             Error = steamCMD.Error;
+		
+			
             return p;
         }
         public async Task<Process> Update(bool validate = false, string custom = null)
@@ -297,6 +300,8 @@ namespace WindowsGSM.Plugins
             webClient.Headers.Add(HttpRequestHeader.UserAgent, userAgent);
             try
             {
+				// https://github.com/ServersHub/ServerAPI/releases/download/1.02/AsaApi_1.02.zip
+				
                 // Download the latest release information from the GitHub API
                 string apiUrl = $"https://api.github.com/repos/ServersHub/ServerAPI/releases/latest";
                 string responseContent = webClient.DownloadString(apiUrl);
@@ -305,8 +310,11 @@ namespace WindowsGSM.Plugins
                 // Get the download URL of the first asset (assuming there is at least one asset)
                 JToken asset = releaseInfo["assets"]?.FirstOrDefault();
                 string downloadUrl = (asset["browser_download_url"].ToString()).Trim();
-                webClient.DownloadFileAsync(new Uri(downloadUrl), ServerPath.GetServersServerFiles(_serverData.ServerID, serverAPIFileName));
-                Thread.Sleep(5000);
+				string[] urlSegments = downloadUrl.Split('/');
+				string filename = urlSegments[urlSegments.Length - 1];
+				serverAPIFileName = filename;
+                webClient.DownloadFileAsync(new Uri(downloadUrl), ServerPath.GetServersServerFiles(_serverData.ServerID, filename));
+				await Task.Delay(5000);
             }
             catch (WebException ex)
             {
@@ -332,7 +340,7 @@ namespace WindowsGSM.Plugins
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Fail to delete {tmpDestination}");
+                    Console.WriteLine($"Fail to delete {tmpDestination} {ex.Message}");
                     return;
                 }
             }
