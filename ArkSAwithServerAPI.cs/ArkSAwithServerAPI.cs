@@ -104,7 +104,7 @@ namespace WindowsGSM.Plugins
 
             param.Append(!string.IsNullOrWhiteSpace(_serverData.ServerPort)? $"?Port={_serverData.ServerPort}": _serverData.GetAvailablePort(_serverData.ServerPort, PortIncrements));
 
-            param.Append(!string.IsNullOrWhiteSpace(_serverData.ServerQueryPort)? $"?Port={_serverData.ServerQueryPort}": _serverData.GetAvailablePort(_serverData.ServerQueryPort, PortIncrements));
+            param.Append(!string.IsNullOrWhiteSpace(_serverData.ServerQueryPort)? $"?QueryPort={_serverData.ServerQueryPort}": _serverData.GetAvailablePort(_serverData.ServerQueryPort, PortIncrements));
 
             param.Append(!string.IsNullOrWhiteSpace(_serverData.ServerMaxPlayer)? $"?MaxPlayers={_serverData.ServerMaxPlayer}" : $"?MaxPlayers=70");
 
@@ -303,7 +303,7 @@ namespace WindowsGSM.Plugins
 				// https://github.com/ServersHub/ServerAPI/releases/download/1.02/AsaApi_1.02.zip
 				
                 // Download the latest release information from the GitHub API
-                string apiUrl = $"https://api.github.com/repos/ServersHub/ServerAPI/releases/latest";
+                string apiUrl = $"https://api.github.com/repos/ArkServerApi/AsaApi/releases/latest";
                 string responseContent = webClient.DownloadString(apiUrl);
                 JObject releaseInfo = JObject.Parse(responseContent);
 
