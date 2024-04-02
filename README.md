@@ -38,5 +38,18 @@
 # Note
 - Dont Use Auto Update on Start
 
+# Clustering
+Change map `ScorchedEarth_WP`
+```
+to setup cluster servers add this to your start params
+
+-NoTransferFromFiltering -clusterID=yourid  -clusterdiroverride="cluster_folder"
+```
+
+### NOTE: 
+makesure clusterdiroveride is the same path (server1 and server2) 
+also if you want specific settings on download and uploads
+`?PreventDownloadSurvivors=False?PreventDownloadItems=False?PreventDownloadDinos=False?PreventUploadSurvivors=False?PreventUploadItems=False?PreventUploadDinos=False`
+
 # License
 This project is licensed under the MIT License - see the <a href="https://github.com/ohmcodes/WindowsGSM.ArkSAwithServerAPI/blob/main/LICENSE">LICENSE.md</a> file for details
