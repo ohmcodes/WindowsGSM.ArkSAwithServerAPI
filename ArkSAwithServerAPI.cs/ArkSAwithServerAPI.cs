@@ -167,15 +167,16 @@ namespace WindowsGSM.Plugins
             }
         }
         // - Stop server function
-        public async Task Stop(Process p)
+	public async Task Stop(Process p)
         {
             await Task.Run(() =>
             {
-                ServerConsole.SetMainWindow(p.MainWindowHandle);
-                ServerConsole.SendWaitToMainWindow("^c");
-                Thread.Sleep(1000);
-                ServerConsole.SendWaitToMainWindow("^c");
+                Functions.ServerConsole.SetMainWindow(p.MainWindowHandle);
+                Functions.ServerConsole.SendWaitToMainWindow("cheat DoExit");
+                Task.Delay(10000);
+                Functions.ServerConsole.SendWaitToMainWindow("^c");
             });
+            await Task.Delay(2000);
         }
         public async Task<Process> Install()
         {
