@@ -405,6 +405,11 @@ namespace WindowsGSM.Plugins
                 string tmpDestination = ServerPath.GetServersServerFiles(_serverData.ServerID, @"tmp\");
                 string apiDestination = ServerPath.GetServersServerFiles(_serverData.ServerID, @"ShooterGame\Binaries\Win64\");
 
+                if(!File.Exists(tmpDestination))
+                {
+                    Directory.CreateDirectory(Path.GetDirectoryName(tmpDestination));
+                }
+
                 // Extract to tmp folder
                 if (!await FileManagement.ExtractZip(apiFilePath, Directory.GetParent(tmpDestination).FullName))
                 {
