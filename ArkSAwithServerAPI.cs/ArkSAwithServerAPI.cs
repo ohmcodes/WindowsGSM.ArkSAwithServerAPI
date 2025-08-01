@@ -655,7 +655,8 @@ namespace WindowsGSM.Plugins
 		{
 			try
             {
-                StreamWriter sw = new StreamWriter("version.txt");
+                string versionPath = ServerPath.GetServersServerFiles(_serverData.ServerID, @"version.txt");
+                StreamWriter sw = new StreamWriter(versionPath);
                 sw.WriteLine(version);
                 sw.Close();
             }
@@ -673,7 +674,8 @@ namespace WindowsGSM.Plugins
 			string line = "";
             try
             {
-                StreamReader sr = new StreamReader("version.txt");
+                string versionPath = ServerPath.GetServersServerFiles(_serverData.ServerID, @"version.txt");
+                StreamReader sr = new StreamReader(versionPath);
                 line = sr.ReadLine();
                 while (line != null)
                 {
