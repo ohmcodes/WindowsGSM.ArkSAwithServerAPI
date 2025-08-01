@@ -402,7 +402,7 @@ namespace WindowsGSM.Plugins
             try
             {
                 string apiFilePath = ServerPath.GetServersServerFiles(_serverData.ServerID, serverAPIFileName);
-                string tmpDestination = ServerPath.GetServersServerFiles(_serverData.ServerID, @"tmp\");
+                string tmpDestination = ServerPath.GetServersServerFiles(_serverData.ServerID, @"tmp");
                 string apiDestination = ServerPath.GetServersServerFiles(_serverData.ServerID, @"ShooterGame\Binaries\Win64\");
 
                 if(!File.Exists(tmpDestination))
@@ -411,7 +411,7 @@ namespace WindowsGSM.Plugins
                 }
 
                 // Extract to tmp folder
-                if (!await FileManagement.ExtractZip(apiFilePath, Directory.GetParent(tmpDestination).FullName))
+                if (!await FileManagement.ExtractZip(tmpDestination, Directory.GetParent(tmpDestination).FullName))
                 {
                     Console.WriteLine($"Fail to extract {serverAPIFileName}");
                     return;
