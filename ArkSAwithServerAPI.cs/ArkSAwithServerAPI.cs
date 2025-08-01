@@ -405,7 +405,7 @@ namespace WindowsGSM.Plugins
                 string tmpDestination = ServerPath.GetServersServerFiles(_serverData.ServerID, @"tmp");
                 string apiDestination = ServerPath.GetServersServerFiles(_serverData.ServerID, @"ShooterGame\Binaries\Win64\");
 
-                if(!File.Exists(tmpDestination))
+                if(!Directory.Exists(tmpDestination))
                 {
                     Directory.CreateDirectory(tmpDestination);
                 }
