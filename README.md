@@ -37,6 +37,7 @@
 
 # Note
 - Dont Use Auto Update on Start
+- Permissions plugin is required and it is not included [Download it here](https://ark-server-api.com/resources/asa-permissions.33/)
 
 # Clustering
 Change map `ScorchedEarth_WP`

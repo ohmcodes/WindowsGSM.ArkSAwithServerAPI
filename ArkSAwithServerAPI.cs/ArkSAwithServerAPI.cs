@@ -42,6 +42,10 @@ namespace WindowsGSM.Plugins
         public readonly string registryPath = @"SOFTWARE\Microsoft\VisualStudio\14.0_Config\VC\Runtimes\X64";
         private readonly Version requiredVersion = new Version("14.38.33.130");
         private string serverAPIFileName = "AsaApi.v0.1.zip";
+		// https://github.com/ArkServerApi/AsaApi/releases/latest
+		public string apiUrl = "https://api.github.com/repos/ArkServerApi/AsaApi/releases/latest";
+		
+		public string currentAPIVersion = "0.1";
 
         private List<string> filesToDelete;
 
@@ -55,7 +59,7 @@ namespace WindowsGSM.Plugins
         public bool AllowsEmbedConsole = true;  // Does this server support output redirect?
         public int PortIncrements = 2; // This tells WindowsGSM how many ports should skip after installation
         public object QueryMethod = new A2S(); // Query method should be use on current server type. Accepted value: null or new A2S() or new FIVEM() or new UT3()
-
+		
 
         // - Game server default values
         public string ServerName = "wgsm_arksa_serverapi_dedicated";
@@ -76,8 +80,6 @@ namespace WindowsGSM.Plugins
 					DownloadVCPackage();
 				}
                 DownloadServerAPI();
-				await Task.Delay(5000);
-                CleanServerAPI();
             }
         }
         // - Start server function, return its Process to WindowsGSM
@@ -167,7 +169,7 @@ namespace WindowsGSM.Plugins
             }
         }
         // - Stop server function
-	public async Task Stop(Process p)
+		public async Task Stop(Process p)
         {
             await Task.Run(() =>
             {
@@ -195,8 +197,6 @@ namespace WindowsGSM.Plugins
             if (error == null)
             {
                 DownloadServerAPI();
-                await Task.Delay(5000);
-                CleanServerAPI();
             }
             return p;
         }
@@ -291,31 +291,39 @@ namespace WindowsGSM.Plugins
         private async void DownloadServerAPI()
         {
             string userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3";
-
-            if (File.Exists(serverAPIFileName))
+			
+            if (File.Exists("version.txt"))
             {
-                //File.Delete(serverAPIFileName);
+                currentAPIVersion = ReadVersion();
             }
 
             WebClient webClient = new WebClient();
             webClient.Headers.Add(HttpRequestHeader.UserAgent, userAgent);
             try
             {
-				// https://github.com/ServersHub/ServerAPI/releases/download/1.02/AsaApi_1.02.zip
-				
                 // Download the latest release information from the GitHub API
-                string apiUrl = $"https://api.github.com/repos/ArkServerApi/AsaApi/releases/latest";
                 string responseContent = webClient.DownloadString(apiUrl);
                 JObject releaseInfo = JObject.Parse(responseContent);
-
+				
+				string version = releaseInfo["name"].ToString().Trim();
+				if(version == currentAPIVersion)
+				{
+					return;
+				}
+				
                 // Get the download URL of the first asset (assuming there is at least one asset)
                 JToken asset = releaseInfo["assets"]?.FirstOrDefault();
                 string downloadUrl = (asset["browser_download_url"].ToString()).Trim();
 				string[] urlSegments = downloadUrl.Split('/');
 				string filename = urlSegments[urlSegments.Length - 1];
 				serverAPIFileName = filename;
+				
+				WriteVersion(version);
                 webClient.DownloadFileAsync(new Uri(downloadUrl), ServerPath.GetServersServerFiles(_serverData.ServerID, filename));
-				await Task.Delay(5000);
+				
+				//await Task.Delay(5000);
+				
+				//CleanServerAPI();
             }
             catch (WebException ex)
             {
@@ -327,14 +335,12 @@ namespace WindowsGSM.Plugins
         }
         public async void CleanServerAPI()
         {
-            Console.WriteLine($"CleanServerAPI() CALLED");
             string apiFilePath = ServerPath.GetServersServerFiles(_serverData.ServerID, serverAPIFileName);
             string tmpDestination = ServerPath.GetServersServerFiles(_serverData.ServerID, @"tmp\");
             string directoryPath = ServerPath.GetServersServerFiles(_serverData.ServerID, @"ShooterGame\Binaries\Win64\");
 
             if(Directory.Exists(tmpDestination))
             {
-                // Delete existing folder
                 try
                 {
                     Directory.Delete(tmpDestination, true);
@@ -357,14 +363,12 @@ namespace WindowsGSM.Plugins
                 // Get List of ServerAPI files
                 GetFilesToDelete(Directory.GetParent(tmpDestination).FullName);
             }
-            Console.WriteLine($"RUNNING FOR EACH NOW");
 
             await Task.Run(() =>
             {
                 foreach (string fileName in filesToDelete)
                 {
                     string filePath = Path.Combine(directoryPath, fileName);
-                    Console.WriteLine($"LISTING ITERATION: {fileName}");
                     try
                     {
                         if (File.Exists(filePath))
@@ -391,23 +395,35 @@ namespace WindowsGSM.Plugins
         }
         public async void InstallServerAPI()
         {
-            Console.WriteLine("InstallServerAPI() CALLED");
             try
             {
                 string apiFilePath = ServerPath.GetServersServerFiles(_serverData.ServerID, serverAPIFileName);
+                string tmpDestination = ServerPath.GetServersServerFiles(_serverData.ServerID, @"tmp\");
                 string apiDestination = ServerPath.GetServersServerFiles(_serverData.ServerID, @"ShooterGame\Binaries\Win64\");
 
-                // Install
-                if (!await FileManagement.ExtractZip(apiFilePath, Directory.GetParent(apiDestination).FullName))
+                // Extract to tmp folder
+                if (!await FileManagement.ExtractZip(apiFilePath, Directory.GetParent(tmpDestination).FullName))
                 {
                     Console.WriteLine($"Fail to extract {serverAPIFileName}");
+                    return;
+                }
+
+
+                bool success = await CopyFiles2(
+                    sourceDirectory: tmpDestination,
+                    destinationDirectory: apiDestination,
+                    folderToExclude: "Plugins"
+                );
+
+                if (success)
+                {
+                    Console.WriteLine("Copy succeeded.");
                 }
                 else
                 {
-                    Console.WriteLine("Extraction completed successfully.");
-                    // Restore Config
-                    RestoreConfigFiles();
+                    Console.WriteLine("Copy failed.");
                 }
+
 
                 // Delete zip file
                 await FileManagement.DeleteAsync(apiFilePath);
@@ -419,7 +435,6 @@ namespace WindowsGSM.Plugins
         }
         public void GetFilesToDelete(string directoryPath)
         {
-            Console.WriteLine($"GetFilesToDelete() CALLED");
             filesToDelete = new List<string>();
             string tmpConfigFile = ServerPath.GetServersServerFiles(_serverData.ServerID, @"tmp2");
             // Get all files in the specified directory and its subdirectories
@@ -435,7 +450,6 @@ namespace WindowsGSM.Plugins
         }
         private async void BackupConfigFiles(string fileName)
         {
-            Console.WriteLine("BackupConfigFiles() CALLED");
             string tmpConfigFile = ServerPath.GetServersServerFiles(_serverData.ServerID, @"tmp2");
             string directoryPath = ServerPath.GetServersServerFiles(_serverData.ServerID, @"ShooterGame\Binaries\Win64\");
             string filePath = Path.Combine(directoryPath, fileName);
@@ -477,9 +491,10 @@ namespace WindowsGSM.Plugins
 
             await Task.Delay(1000);
         }
+
+        // deprecated
         private async void RestoreConfigFiles()
         {
-            Console.WriteLine($"RestoreConfigFiles() CALLED");
             string tmpConfigFile = ServerPath.GetServersServerFiles(_serverData.ServerID, @"tmp2");
             string directoryPath = ServerPath.GetServersServerFiles(_serverData.ServerID, @"ShooterGame\Binaries\Win64\");
 
@@ -505,9 +520,9 @@ namespace WindowsGSM.Plugins
                 }
             });
         }
+        
         private async Task<bool> CopyFiles(string sourceDirectory, string destinationDirectory)
         {
-            Console.WriteLine("CopyFiles() CALLED");
             // Get all files in the source directory and its subdirectories
             string[] filesToCopy = Directory.GetFiles(sourceDirectory, "*", SearchOption.AllDirectories);
 
@@ -520,7 +535,7 @@ namespace WindowsGSM.Plugins
 
                     if (!File.Exists(destinationFilePath))
                     {
-                        Console.WriteLine($"Not Exist: !!!!!!!!!!! {destinationFilePath}");
+                        Console.WriteLine($"Not Exist: {destinationFilePath}");
                         return false;
                     }
 
@@ -543,6 +558,66 @@ namespace WindowsGSM.Plugins
                 return true;
             });
         }
+
+        private async Task<bool> CopyFiles2(string sourceDirectory, string destinationDirectory, string folderToExclude = "obj")
+        {
+            if (!Directory.Exists(sourceDirectory))
+            {
+                Console.WriteLine($"Source directory does not exist: {sourceDirectory}");
+                return false;
+            }
+
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    var sourceDir = new DirectoryInfo(sourceDirectory);
+
+                    // Get all files, excluding those in the folder to exclude
+                    var filesToCopy = sourceDir.GetFiles("*", SearchOption.AllDirectories)
+                                               .Where(file => !IsSubDirectory(file.Directory, sourceDir, folderToExclude))
+                                               .ToList();
+
+                    foreach (var file in filesToCopy)
+                    {
+                        // Calculate relative path
+                        string relativePath = file.FullName.Substring(sourceDirectory.Length + 1);
+                        string destinationFilePath = Path.Combine(destinationDirectory, relativePath);
+
+                        // Ensure destination directory exists
+                        Directory.CreateDirectory(Path.GetDirectoryName(destinationFilePath));
+
+                        // Copy file (overwrite)
+                        File.Copy(file.FullName, destinationFilePath, overwrite: true);
+
+                        Console.WriteLine($"Copied: {destinationFilePath}");
+                    }
+
+                    Console.WriteLine("Copy completed successfully.");
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"CopyFiles() Error: {ex.Message}");
+                    return false;
+                }
+            });
+        }
+
+        // Helper: Check if a directory is a subdirectory of the excluded folder name
+        private bool IsSubDirectory(DirectoryInfo currentDir, DirectoryInfo rootDir, string folderToExclude)
+        {
+            while (currentDir != null && currentDir.FullName.StartsWith(rootDir.FullName))
+            {
+                if (string.Equals(currentDir.Name, folderToExclude, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+                currentDir = currentDir.Parent;
+            }
+            return false;
+        }
+
         private void WebClient_DownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
         {
             Notice += $"Download Progress: {e.ProgressPercentage}";
@@ -570,6 +645,52 @@ namespace WindowsGSM.Plugins
                 Notice = "Download completed successfully. Extracting server API now...";
                 InstallServerAPI();
             }
+        }
+		
+		private void WriteVersion(string version)
+		{
+			try
+            {
+                StreamWriter sw = new StreamWriter("version.txt");
+                sw.WriteLine(version);
+                sw.Close();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Exception: " + e.Message);
+            }
+            finally
+            {
+                Console.WriteLine("Executing finally block.");
+            }
+		}
+		private string ReadVersion()
+		{
+			string line = "";
+            try
+            {
+                StreamReader sr = new StreamReader("version.txt");
+                line = sr.ReadLine();
+                while (line != null)
+                {
+                    Console.WriteLine(line);
+                    line = sr.ReadLine();
+                }
+                sr.Close();
+                //Console.ReadLine();
+
+                
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Exception: " + e.Message);
+            }
+            finally
+            {
+                Console.WriteLine("Executing finally block.");
+            }
+
+            return line;
         }
     }
 }
