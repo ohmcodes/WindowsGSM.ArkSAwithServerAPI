@@ -407,11 +407,11 @@ namespace WindowsGSM.Plugins
 
                 if(!File.Exists(tmpDestination))
                 {
-                    Directory.CreateDirectory(Path.GetDirectoryName(tmpDestination));
+                    Directory.CreateDirectory(tmpDestination);
                 }
 
                 // Extract to tmp folder
-                if (!await FileManagement.ExtractZip(tmpDestination, Directory.GetParent(tmpDestination).FullName))
+                if (!await FileManagement.ExtractZip(apiFilePath, Directory.GetParent(tmpDestination).FullName))
                 {
                     Console.WriteLine($"Fail to extract {serverAPIFileName}");
                     return;
