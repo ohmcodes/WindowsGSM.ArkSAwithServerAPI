@@ -298,10 +298,6 @@ namespace WindowsGSM.Plugins
             {
                 currentAPIVersion = ReadVersion();
             }
-            else
-            {
-                File.WriteAllText(versionPath, ReadVersion());
-            }
 
             WebClient webClient = new WebClient();
             webClient.Headers.Add(HttpRequestHeader.UserAgent, userAgent);
@@ -311,7 +307,7 @@ namespace WindowsGSM.Plugins
                 string responseContent = webClient.DownloadString(apiUrl);
                 JObject releaseInfo = JObject.Parse(responseContent);
 				
-				string version = releaseInfo["name"].ToString().Trim();
+				string version = (releaseInfo["name"].ToString()).Trim();
 				if(version == currentAPIVersion)
 				{
 					return;
