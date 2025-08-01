@@ -291,10 +291,16 @@ namespace WindowsGSM.Plugins
         private async void DownloadServerAPI()
         {
             string userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3";
-			
-            if (File.Exists("version.txt"))
+
+            string versionPath = ServerPath.GetServersServerFiles(_serverData.ServerID, @"version.txt");
+
+            if (File.Exists(versionPath))
             {
                 currentAPIVersion = ReadVersion();
+            }
+            else
+            {
+                File.WriteAllText(versionPath, ReadVersion());
             }
 
             WebClient webClient = new WebClient();
@@ -333,6 +339,8 @@ namespace WindowsGSM.Plugins
 
             return;
         }
+
+        //deprecated
         public async void CleanServerAPI()
         {
             string apiFilePath = ServerPath.GetServersServerFiles(_serverData.ServerID, serverAPIFileName);
